@@ -1,4 +1,4 @@
-﻿/*
+/*
 Copyright (c) 2018-2021 Festo AG & Co. KG <https://www.festo.com/net/de_de/Forms/web/contact_international>
 Author: Michael Hoffmeister
 
@@ -14,6 +14,7 @@ namespace AdminShellNS
     public class MultiValueDictionary<K, V>
     {
         private Dictionary<K, List<V>> dict = new Dictionary<K, List<V>>();
+
         public void Add(K key, V value)
         {
             if (dict.TryGetValue(key, out var list))
@@ -22,16 +23,50 @@ namespace AdminShellNS
                 dict.Add(key, new List<V> { value });
         }
 
+        public void Remove(K key)
+        {
+            if (dict.ContainsKey(key))
+                dict.Remove(key);
+        }
+
         public bool ContainsKey(K key) => dict.ContainsKey(key);
 
         public List<V> this[K key] => dict[key];
 
-        public IEnumerable<List<V>> Keys
+        public IEnumerable<List<V>> ValueLists
         {
             get
             {
                 return dict.Values;
             }
+        }
+
+        public IEnumerable<V> Values
+        {
+            get
+            {
+                foreach (var vl in dict.Values)
+                    foreach (var v in vl)
+                        yield return v;
+            }
+        }
+
+        public IEnumerable<K> Keys
+        {
+            get
+            {
+                return dict.Keys;
+            }
+        }
+
+        public void Clear() => dict.Clear();
+
+        public IEnumerable<V> All(K key)
+        {
+            if (!dict.ContainsKey(key))
+                yield break;
+            foreach (var x in dict[key])
+                yield return x;
         }
     }
 

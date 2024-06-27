@@ -1,4 +1,4 @@
-﻿/*
+/*
 Copyright (c) 2018-2021 Festo AG & Co. KG <https://www.festo.com/net/de_de/Forms/web/contact_international>
 Author: Michael Hoffmeister
 
@@ -39,7 +39,19 @@ namespace AdminShellEvents
         /// <summary>
         /// ValueId of the update element.
         /// </summary>
-        public Reference ValueId { get; set; }
+        //public Reference ValueId { get; set; }
+
+        /// <summary>
+        /// ValueId of the update element.
+        /// </summary>
+        public IReference ValueId { get; set; }
+
+        /// <summary>
+        /// Direct reference to Referable, when value item was successfully processed.
+        /// Note: only runtime value; not specified; not interoperable
+        /// </summary>
+        [JsonIgnore]
+        public IReferable FoundReferable;
 
         //
         // Constructor

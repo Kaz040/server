@@ -1,0 +1,296 @@
+﻿@page "/aid"
+
+@using AasxServerAssetInterfacesDescription;
+@using AasxServer;
+@using Aas = AasCore.Aas3_0;
+@using Extensions;
+@using AasxServerBlazor.Data
+
+
+
+@inject AASService SubmodelService
+
+<div>
+    <label>HTTP</label>
+    <input type="checkbox" name="" id="">
+    <label>Modbus</label>
+    <input type="checkbox" name="" id="">
+    <label>MQTT</label>
+    <input type="checkbox" name="" id="">
+    <label>OPCUA</label>
+    <input type="checkbox" name="" id="">
+</div>
+<div>
+    <button class="btn btn-primary" style="margin-bottom:2px; width:100%;" @onclick="PrepareAidData">Create Datapoints Table</button>
+    <button class="btn btn-primary" style="margin-bottom:2px; width:100%;" @onclick="singleShot">Single Update..</button>
+    <button class="btn btn-primary" style="margin-bottom:2px; width:100%;" @onclick="ContinousRunStart">Start Continous Run..</button>
+    <button class="btn btn-primary" style="margin-bottom:2px; width:100%;" @onclick="ContinousRunStop">Stop Continous Run..</button>
+</div>
+
+@* @if (SubmodelService.GetSubmodels() == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Submodels</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var environ in Program.env)
+            {
+                @if (environ != null)
+                {
+                    // find AID submodel and add it. 
+                    Submodel = environ.AasEnv?.FindAllSubmodelBySemanticId("https://admin-shell.io/idta/AssetInterfacesDescription/1/0/Submodel");
+                    if(Submodel != null)
+                    {
+                        @foreach (ISubmodel item in Submodel)
+                        {
+                            AIDSubmodels.Add(item);
+                        }
+                        Submodel = null;
+                        
+                    }
+                    //find AIMC submodel and add it
+                    Submodel = environ.AasEnv?.FindAllSubmodelBySemanticId("https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/1/0/Submodel");
+                    if (Submodel != null)
+                    {
+                        @foreach (ISubmodel item in Submodel)
+                        {
+                            AIMCSubmodels.Add(item);
+                        }
+                    }
+                }
+            }
+
+            @foreach (var sm in SubmodelService.GetSubmodels())
+            {
+                
+                if (sm != null && sm.IdShort != null)
+                {
+                    <tr>
+                        <td>@sm.IdShort</td>
+                    </tr>
+                }
+            }
+
+        </tbody>
+    </table>
+}  *@
+
+
+
+@code {
+    IEnumerable<ISubmodel> Submodel;
+    List<ISubmodel> AIDSubmodels = new List<ISubmodel>();
+    ISubmodel AIMCSubmodels = null;
+    ISubmodelElement MappingConfigurations = null;
+
+
+
+    int currentCount = 0;
+    bool IsSubmodel = false;
+    bool datapointsReady = false;
+    bool singleShotReady = false;
+    bool StartContinous = false;
+    bool StopContinous = false;
+    bool AIDSubmodelLoaded = false;
+    bool AIMCSubmodelLoaded = false;
+
+    AidAllInterfaceStatus _allInterfaceStatus = new AidAllInterfaceStatus();
+
+    List<AdminShellNS.AdminShellPackageEnv> lookUpReference = new List<AdminShellNS.AdminShellPackageEnv>();
+
+    // AidSetup _InterfaceSetup = new AidSetup();
+
+    protected override void OnInitialized()
+    {
+        
+        {
+
+            foreach (var environ in Program.env)
+            {
+                if (environ != null)
+                {
+                    // find AID submodel and add it.
+                    Submodel = environ.AasEnv?.FindAllSubmodelBySemanticId("https://admin-shell.io/idta/AssetInterfacesDescription/1/0/Submodel");
+                    if (Submodel != null)
+                    {
+                        foreach (ISubmodel item in Submodel)
+                        {
+                            AIDSubmodels.Add(item);                                                     
+                            lookUpReference.Add(environ);
+                                                       
+                        }
+                        Submodel = null;
+
+                    }
+                    /// <summary>
+                    /// Find AIMC and add it to AIMCSubmodel. 
+                    /// if AIMC submodel is not null, that means something is existing
+                    /// Then in the following captured AIMC submodels, the MappingConfiguration SMC should be extracted and added to
+                    /// the 
+                    /// </summary>
+                    Submodel = environ.AasEnv?.FindAllSubmodelBySemanticId("https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/1/0/Submodel");
+                    if (Submodel != null && AIMCSubmodels == null)
+                    {
+                        foreach (ISubmodel item in Submodel)
+                        {
+                            AIMCSubmodels = item;
+
+                            foreach(ISubmodelElement _submodelElements in item.SubmodelElements)
+                            {
+                                if (_submodelElements is SubmodelElementList && 
+                                    _submodelElements.SemanticId?.GetAsExactlyOneKey().Value.ToString() 
+                                    == "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/1/0/MappingConfigurations")
+                                {
+                                    MappingConfigurations = _submodelElements;
+                                }
+                            }
+                            AIMCSubmodels.Remove(MappingConfigurations);
+
+                        }
+                        Submodel = null;
+                    }
+                    else if (Submodel != null && MappingConfigurations != null)
+                    {
+                        foreach(ISubmodel item in Submodel)
+                        {
+                            extractMappingConfig(item.SubmodelElements);
+                        }
+                    }
+                }
+
+            }
+
+
+
+
+            if (AIDSubmodels != null)
+            {
+                _allInterfaceStatus.RememberAidSubmodel(AIDSubmodels, adoptUseFlags: true); // load AID submodel
+                AIDSubmodelLoaded = true;
+            }
+            if(AIMCSubmodels != null)
+            {
+                // add buffered Mapping Configurations to AIMC Submodel before parsing it.
+                AIMCSubmodels.Add(MappingConfigurations);
+                _allInterfaceStatus.RememberMappingSubmodel(AIMCSubmodels); // load AIMC submodel
+                AIMCSubmodelLoaded = true;
+            }
+            IsSubmodel = true;
+
+        }
+    }
+
+    void extractMappingConfig(List<ISubmodelElement> _submodelElements)
+    {
+        foreach(ISubmodelElement _submodelElement in _submodelElements)
+        {
+            if (_submodelElement is SubmodelElementList _mappingConfigs &&
+            _submodelElement.SemanticId?.GetAsExactlyOneKey().Value.ToString()
+            == "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/1/0/MappingConfigurations")
+            {
+                foreach(SubmodelElementCollection _mappingConfig in _mappingConfigs.Value)
+                {
+                    MappingConfigurations.Add(_mappingConfig);
+                }
+            }
+        }
+    }
+
+    void PrepareAidData()
+    {
+        if(IsSubmodel)
+        {
+            try
+            {
+                //build up data structures
+                // access
+                _allInterfaceStatus.InterfaceStatus.Clear();
+
+                foreach(AdminShellNS.AdminShellPackageEnv ENV in lookUpReference)
+                {
+                    foreach(ISubmodel smAid in _allInterfaceStatus.SmAidDescription)
+                    {
+                      _allInterfaceStatus.PrepareAidInformation(
+                      smAid,
+                      _allInterfaceStatus.SmAidMapping,
+                      lambdaLookupReference: (rf) => ENV.AasEnv.FindReferableByReference(rf));
+                    }
+                    
+                }
+                _allInterfaceStatus.SetAidInformationForUpdateAndTimeout();
+                datapointsReady = true;
+
+            }
+            catch(Exception e)
+            {
+                datapointsReady = false;
+            }
+        }
+
+     }
+
+    void singleShot()
+    {
+        try
+        {
+            if (_allInterfaceStatus?.ContinousRun != true)
+                //single shot
+                _allInterfaceStatus.UpdateValuesSingleShot(); 
+
+        }
+
+        catch (Exception ex)
+        {
+            ;
+        }
+    }
+
+    void ContinousRunStart()
+    {
+        try
+        {
+            if (_allInterfaceStatus != null)
+            {
+                //start continous run
+                _allInterfaceStatus.StartContinousRun();
+            }
+        }
+
+        catch (Exception ex)
+        {
+            ;
+        }
+
+    }
+
+    void ContinousRunStop()
+    {
+        try
+        {
+            if (_allInterfaceStatus != null)
+            {
+                //stop continous run
+                _allInterfaceStatus.StopContinousRun();
+            }
+        }
+
+        catch (Exception ex)
+        {
+            ;
+        }
+    }
+
+    void IncrementCount()
+    {
+        currentCount++;
+    }
+
+}
+

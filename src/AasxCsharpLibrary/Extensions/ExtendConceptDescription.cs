@@ -1,4 +1,4 @@
-﻿using AdminShellNS;
+using AdminShellNS;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -282,7 +282,7 @@ namespace Extensions
             return eds;
         }
 
-        public static Reference GetCdReference(this ConceptDescription conceptDescription)
+        public static Reference GetCdReference(this IConceptDescription conceptDescription)
         {
             var key = new Key(KeyTypes.ConceptDescription, conceptDescription.Id);
             return new Reference(ReferenceTypes.ModelReference, new List<IKey> {key});

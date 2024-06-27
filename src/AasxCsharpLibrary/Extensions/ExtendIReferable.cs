@@ -1,4 +1,4 @@
-﻿using AdminShellNS;
+using AdminShellNS;
 using AdminShellNS.Display;
 using System;
 using System.Collections.Generic;
@@ -181,6 +181,18 @@ namespace Extensions
                     AasValidationSeverity.SchemaViolation, referable,
                     "Referable: existing description with missing langString",
                     () => { referable.Description = null; }));
+        }
+
+        /// <summary>
+        /// Tells, if the IReferable can sub-structure more elements
+        /// </summary>
+        public static bool IsStructured(this IReferable rf)
+        {
+            return (rf is ISubmodel
+                || rf is ISubmodelElementCollection
+                || rf is ISubmodelElementList
+                || rf is IOperation
+                || rf is IEntity);
         }
 
         /// <summary>

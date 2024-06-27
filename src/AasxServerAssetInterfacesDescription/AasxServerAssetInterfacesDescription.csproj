@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	  <TargetFramework>net8.0</TargetFramework>
+	  <ImplicitUsings>disable</ImplicitUsings>
+	  <Nullable>enable</Nullable>
+	  <LangVersion>12.0</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentModbus" Version="5.0.3" />
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua" Version="1.4.371.60" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AasCore.Aas3_0\AasCore.Aas3_0.csproj" />
+    <ProjectReference Include="..\AasxCsharpLibrary\AasxCsharpLibrary.csproj" />
+    <ProjectReference Include="..\AasxPredefinedConcepts\AasxPredefinedConcepts.csproj" />
+    <ProjectReference Include="..\AasxServerStandardBib\AasxServerStandardBib.csproj" />
+  </ItemGroup>
+
+</Project>

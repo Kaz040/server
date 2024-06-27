@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
@@ -122,7 +122,7 @@ namespace Extensions
 
         #region QualifierCollection
 
-        public static Qualifier FindQualifierOfType(this List<Qualifier> qualifiers, string qualifierType)
+        public static IQualifier FindQualifierOfType(this List<IQualifier> qualifiers, string qualifierType)
         {
             if (qualifierType == null)
             {
