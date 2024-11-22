@@ -1,7 +1,7 @@
 services:
-  aasx-server:
-    container_name: aasx-server
-    hostname: aasx-server
+  aasx-server-git:
+    container_name: aasx-server-git
+    hostname: aasx-server-git
     build:
       context: ./../..
       dockerfile: ./src/docker/Dockerfile-AasxServerBlazor
